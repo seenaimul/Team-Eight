@@ -17,23 +17,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // On first load
     supabase.auth.getSession().then(({ data }) => {
+      console.log("🔍 Supabase session on load:", data.session);
+      console.log("🔍 User from session:", data.session?.user);
+  
       setUser(data.session?.user ?? null);
       setLoading(false);
     });
-
-    // Listen to changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+  
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("🔄 Auth event:", _event, "session:", session);
+  
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+  
+    return () => listener.subscription.unsubscribe();
   }, []);
+  
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
