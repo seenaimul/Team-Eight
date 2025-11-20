@@ -1,26 +1,21 @@
-import { Bell, Home, Info, LogIn, LogOut, Phone, Search, TrendingUp } from 'lucide-react';
+import { Bell, Home, Info, LogIn, Phone, Search, TrendingUp } from 'lucide-react';
+import { useNavigate, useLocation } from "react-router-dom";
 import logo from '../assets/logo.png'
 import { NavButton } from './NavButton';
-import React from "react";
 
 export function Header() {
-    const [currentPage, setCurrentPage] = React.useState("home");
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const navItems = [
-        {id: 'home', label: 'Home', icon: Home},
-        {id: 'search', label: 'Search', icon: Search},
-        {id: 'alerts', label: 'Alerts', icon: Bell, protected: true},
-        {id: 'market', label: 'Market Intelligence', icon: TrendingUp},
-        {id: 'contact', label: 'Contact', icon: Phone},
+        {to: '/', id: 'home', label: 'Home', icon: Home},
+        {to: '/search', id: 'search', label: 'Search', icon: Search},
+        {to: '/alerts', id: 'alerts', label: 'Alerts', icon: Bell, protected: true},
+        {to: '/market', id: 'market', label: 'Market Intelligence', icon: TrendingUp},
+        {to: '/contact', id: 'contact', label: 'Contact', icon: Phone},
+        {to: '/about', id: 'about', label: 'About', icon: Info}
     ];
 
-    const SignInItem =  {id: 'login',  label: 'Login', icon: LogIn}
-    const AboutItem = {id: 'about', label: 'About', icon: Info}
-
-    const handleNavigate = (page: string) => {
-        setCurrentPage(page);
-        console.log("Navigate to: ", page);
-    };
 
     return (
         <div className="flex flex-col bg-grey">
@@ -38,8 +33,8 @@ export function Header() {
                                     id={item.id}
                                     label={item.label}
                                     icon={item.icon}
-                                    active={currentPage == item.id}
-                                    onClick={handleNavigate}
+                                    active={location.pathname === item.to}
+                                    onClick={() => navigate(item.to)}
                                     />
                                 )
                             )}
@@ -47,9 +42,9 @@ export function Header() {
                 
                 
                 <div className="flex flex-row mt-1">
-                <NavButton key={AboutItem.id} id={AboutItem.id} label={AboutItem.label}/>
+                <NavButton id="/signin" label="Sign In" icon={LogIn} onClick={() => navigate('/signin')} />
                 <div className="m-2"></div>
-                <NavButton key={SignInItem.id} id={SignInItem.id} label={SignInItem.label} icon={SignInItem.icon} active={true}/>
+                <NavButton id="/signup" label="Sign Up" active={location.pathname === "/signup"} onClick={() => navigate('/signup')} />
                 </div>
             </div>
     

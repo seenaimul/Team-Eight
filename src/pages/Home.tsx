@@ -10,7 +10,6 @@ export default function Home() {
         <QuickFilter />
         <SmartAlerts />
         <WhatWeOffer />
-        
     </div>
   );
 }
