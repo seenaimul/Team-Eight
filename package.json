@@ -1,8 +1,20 @@
 {
   "name": "team-8",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
+  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
+  "homepage": "https://github.com/Abdul-Burale/Team-Eight#readme",
+  "bugs": {
+    "url": "https://github.com/Abdul-Burale/Team-Eight/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Abdul-Burale/Team-Eight.git"
+  },
+  "license": "MIT",
+  "author": "Jamshid",
   "type": "module",
+  "main": "eslint.config.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
