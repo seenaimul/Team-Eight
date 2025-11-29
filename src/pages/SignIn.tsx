@@ -4,17 +4,60 @@ import { useNavigate } from "react-router-dom";
 import {useState} from "react"
 
 async function handleLogin(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
+  try {
+    // Step 1: Authenticate user
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
+    console.log("AUTH LOGIN:", { data, error });
 
-  if (error) {
-    return { success: false, error: error.message };
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    // Step 2: Get authenticated user ID
+    const userId = data.user?.id;
+    if (!userId) {
+      return { success: false, error: "Failed to get user ID after login." };
+    }
+
+    // Step 3: Fetch user profile from users table to get role
+    const { data: profile, error: profileError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    console.log("USER PROFILE:", profile);
+
+    if (profileError) {
+      return { 
+        success: false, 
+        error: profileError.message || "Failed to fetch user profile." 
+      };
+    }
+
+    if (!profile) {
+      return { 
+        success: false, 
+        error: "User profile not found. Please contact support." 
+      };
+    }
+
+    return { 
+      success: true, 
+      user: data.user, 
+      role: profile.role 
+    };
+  } catch (err: any) {
+    console.error("Login error:", err);
+    return { 
+      success: false, 
+      error: err.message || "An unexpected error occurred during login." 
+    };
   }
-
-  return { success: true, user: data.user };
 }
 
 export default function SignIn() {
@@ -25,16 +68,38 @@ export default function SignIn() {
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(""); // Clear previous errors
 
     const result = await handleLogin(email, password);
     
-    if(!result.success) {
-      setErrorMsg("Incorrect email or password.");
+    if (!result.success) {
+      // Handle specific error cases
+      if (result.error?.includes("Invalid login credentials") || 
+          result.error?.includes("Email not confirmed") ||
+          result.error?.toLowerCase().includes("invalid")) {
+        setErrorMsg("Incorrect email or password.");
+      } else if (result.error?.includes("profile not found")) {
+        setErrorMsg("User profile not found. Please contact support.");
+      } else {
+        setErrorMsg(result.error || "An error occurred. Please try again.");
+      }
       return;
     }
 
-    navigate("/");
-
+    // Step 4: Redirect based on role
+    const role = result.role;
+    if (role === "seller") {
+      navigate("/seller/dashboard");
+    } else if (role === "buyer") {
+      navigate("/buyer/dashboard");
+    } else if (role === "agent") {
+      navigate("/agent/dashboard");
+    } else if (role === "admin") {
+      navigate("/admin");
+    } else {
+      // Fallback for unknown roles
+      navigate("/");
+    }
   }
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white px-4 py-12">
