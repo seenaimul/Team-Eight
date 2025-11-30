@@ -1,5 +1,9 @@
+import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { Plus, TrendingUp } from 'lucide-react';
+import { supabase } from '../../supabase/client';
 import SellerSidebar from '../../components/seller/SellerSidebar';
+import SellerHeader from '../../components/seller/SellerHeader';
 import OverviewCard from '../../components/seller/OverviewCard';
 import PropertyCard from '../../components/seller/PropertyCard';
 import RecentOfferCard from '../../components/seller/RecentOfferCard';
@@ -14,6 +18,65 @@ import {
 } from '../../data/mockSellerData';
 
 export default function SellerDashboard() {
+  const { userId: urlUserId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+
+  // Validate userId from URL matches current session user
+  useEffect(() => {
+    const validateUser = async () => {
+      if (!urlUserId) {
+        setIsAuthorized(false);
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        navigate('/signin');
+        return;
+      }
+
+      if (session.user.id !== urlUserId) {
+        // User trying to access another user's data - unauthorized
+        navigate('/unauthorized');
+        setIsAuthorized(false);
+        return;
+      }
+
+      setIsAuthorized(true);
+    };
+
+    validateUser();
+  }, [urlUserId, navigate]);
+  
+  // Use userId to fetch seller-specific data
+  // Example: const { data } = await supabase.from('properties').select('*').eq('seller_id', urlUserId);
+
+  // Show loading while validating authorization
+  if (isAuthorized === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show unauthorized message
+  if (isAuthorized === false) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Unauthorized</h1>
+          <p className="text-gray-600">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
@@ -23,34 +86,7 @@ export default function SellerDashboard() {
         {/* Main Content */}
         <main className="flex-1 lg:ml-0">
           {/* Top Header */}
-          <header className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">BB</span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-700">AI</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-semibold text-gray-900">Seller Dashboard Design</h1>
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
-                </button>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                  Share
-                </button>
-              </div>
-            </div>
-          </header>
+          <SellerHeader />
 
           {/* Dashboard Content */}
           <div className="p-6 space-y-6">
@@ -69,7 +105,10 @@ export default function SellerDashboard() {
 
             {/* Add New Property CTA & Performance Tips */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="lg:col-span-2 bg-blue-600 rounded-xl shadow-lg p-6 text-white">
+              <button
+                onClick={() => urlUserId && navigate(`/seller/${urlUserId}/add`)}
+                className="lg:col-span-2 bg-blue-600 rounded-xl shadow-lg p-6 text-white hover:bg-blue-700 transition-colors text-left"
+              >
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                     <Plus className="w-6 h-6 text-white" />
@@ -81,7 +120,7 @@ export default function SellerDashboard() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </button>
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">

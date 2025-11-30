@@ -1,35 +1,63 @@
 import { Home, Building2, PlusCircle, FileText, BarChart3, Settings, LogOut } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { supabase } from '../../supabase/client';
 
 interface NavItem {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  path: string;
+  pathTemplate: string; // Template with :userId placeholder
   isLogout?: boolean;
 }
 
 const navItems: NavItem[] = [
-  { id: 'dashboard', label: 'Home Dashboard', icon: Home, path: '/seller/dashboard' },
-  { id: 'properties', label: 'My Properties', icon: Building2, path: '/seller/properties' },
-  { id: 'add', label: 'Add New Property', icon: PlusCircle, path: '/seller/add' },
-  { id: 'offers', label: 'Offers Received', icon: FileText, path: '/seller/offers' },
-  { id: 'analytics', label: 'Analytics & Insights', icon: BarChart3, path: '/seller/analytics' },
-  { id: 'settings', label: 'Profile Settings', icon: Settings, path: '/seller/settings' },
+  { id: 'dashboard', label: 'Home Dashboard', icon: Home, pathTemplate: '/seller/:userId/dashboard' },
+  { id: 'properties', label: 'My Properties', icon: Building2, pathTemplate: '/seller/:userId/properties' },
+  { id: 'add', label: 'Add New Property', icon: PlusCircle, pathTemplate: '/seller/:userId/add' },
+  { id: 'offers', label: 'Offers Received', icon: FileText, pathTemplate: '/seller/:userId/offers' },
+  { id: 'analytics', label: 'Analytics & Insights', icon: BarChart3, pathTemplate: '/seller/:userId/analytics' },
+  { id: 'settings', label: 'Profile Settings', icon: Settings, pathTemplate: '/seller/:userId/settings' },
 ];
 
 export default function SellerSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { userId } = useParams<{ userId: string }>();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  const handleLogout = () => {
-    // TODO: Implement logout logic
+  // Get current user ID from session as fallback
+  useEffect(() => {
+    if (!userId) {
+      const getCurrentUserId = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setCurrentUserId(session.user.id);
+        }
+      };
+      getCurrentUserId();
+    }
+  }, [userId]);
+
+  // Use userId from URL params (preferred), fallback to currentUserId from session
+  const activeUserId = userId || currentUserId;
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate('/');
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  const getPath = (pathTemplate: string) => {
+    if (!activeUserId) return '#';
+    return pathTemplate.replace(':userId', activeUserId);
+  };
+
+  const isActive = (pathTemplate: string) => {
+    if (!activeUserId) return false;
+    const fullPath = pathTemplate.replace(':userId', activeUserId);
+    return location.pathname === fullPath;
+  };
 
   return (
     <>
@@ -71,15 +99,19 @@ export default function SellerSidebar() {
           <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const active = isActive(item.path);
+              const active = isActive(item.pathTemplate);
+              const path = getPath(item.pathTemplate);
               
               return (
                 <button
                   key={item.id}
                   onClick={() => {
-                    navigate(item.path);
-                    setIsMobileOpen(false);
+                    if (activeUserId) {
+                      navigate(path);
+                      setIsMobileOpen(false);
+                    }
                   }}
+                  disabled={!activeUserId}
                   className={`
                     w-full flex items-center gap-3 px-4 py-3 rounded-xl
                     transition-all duration-200
@@ -88,6 +120,7 @@ export default function SellerSidebar() {
                         ? 'bg-blue-600 text-white shadow-md'
                         : 'text-gray-700 hover:bg-gray-100'
                     }
+                    ${!activeUserId ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
                 >
                   <Icon className={`w-5 h-5 ${active ? 'text-white' : 'text-gray-600'}`} />

@@ -49,7 +49,8 @@ async function handleLogin(email: string, password: string) {
     return { 
       success: true, 
       user: data.user, 
-      role: profile.role 
+      role: profile.role,
+      userId: userId
     };
   } catch (err: any) {
     console.error("Login error:", err);
@@ -86,16 +87,23 @@ export default function SignIn() {
       return;
     }
 
-    // Step 4: Redirect based on role
+    // Step 4: Redirect based on role with userId in URL
     const role = result.role;
+    const userId = result.userId;
+    
+    if (!userId) {
+      setErrorMsg("Failed to get user ID. Please try again.");
+      return;
+    }
+
     if (role === "seller") {
-      navigate("/seller/dashboard");
+      navigate(`/seller/${userId}/dashboard`);
     } else if (role === "buyer") {
-      navigate("/buyer/dashboard");
+      navigate(`/buyer/dashboard/${userId}`);
     } else if (role === "agent") {
-      navigate("/agent/dashboard");
+      navigate(`/agent/dashboard/${userId}`);
     } else if (role === "admin") {
-      navigate("/admin");
+      navigate(`/admin/${userId}`);
     } else {
       // Fallback for unknown roles
       navigate("/");
