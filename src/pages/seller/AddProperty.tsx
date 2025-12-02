@@ -166,11 +166,10 @@ export default function AddProperty() {
         throw new Error('Failed to upload image');
       }
 
-      // Insert property into Supabase with user_id
-      const { data, error } = await supabase
+      // Insert property into Supabase
+      const { error } = await supabase
         .from('properties')
         .insert({
-          user_id: user.id,
           title: title.trim(),
           description: description.trim(),
           price: Number(price),
@@ -186,6 +185,9 @@ export default function AddProperty() {
           virtual_tour_link: virtualTourLink.trim() && virtualTourLink !== 'https://your-virtual-tour-link.com' 
             ? virtualTourLink.trim() 
             : null,
+          user_id: user.id,
+          status: 'active',
+          views: 0,
         })
         .select();
 
