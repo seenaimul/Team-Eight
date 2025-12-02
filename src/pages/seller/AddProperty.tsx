@@ -33,8 +33,6 @@ export default function AddProperty() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [virtualTourLink, setVirtualTourLink] = useState('https://your-virtual-tour-link.com');
-  const [latitude, setLatitude] = useState<number | ''>('');
-  const [longitude, setLongitude] = useState<number | ''>('');
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -188,8 +186,6 @@ export default function AddProperty() {
           virtual_tour_link: virtualTourLink.trim() && virtualTourLink !== 'https://your-virtual-tour-link.com' 
             ? virtualTourLink.trim() 
             : null,
-          latitude: latitude === '' ? null : Number(latitude),
-          longitude: longitude === '' ? null : Number(longitude),
         })
         .select();
 
@@ -643,60 +639,7 @@ export default function AddProperty() {
                 </div>
               </div>
 
-              {/* SECTION 6: Map Coordinates */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-yellow-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Map Coordinates</h2>
-                    <p className="text-sm text-gray-500">Optional - Auto-filled from address</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                  <div>
-                    <label htmlFor="latitude" className="block text-sm font-medium text-gray-700 mb-2">
-                      Latitude
-                    </label>
-                    <input
-                      id="latitude"
-                      type="number"
-                      step="any"
-                      value={latitude}
-                      onChange={(e) => setLatitude(e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="51.5074"
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="longitude" className="block text-sm font-medium text-gray-700 mb-2">
-                      Longitude
-                    </label>
-                    <input
-                      id="longitude"
-                      type="number"
-                      step="any"
-                      value={longitude}
-                      onChange={(e) => setLongitude(e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="-0.1278"
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Map Preview */}
-                <div className="border border-gray-200 rounded-lg h-64 bg-gray-50 flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">Map preview will appear here</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECTION 7: Bottom Buttons */}
+              {/* Bottom Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 <button
                   type="submit"

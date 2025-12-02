@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Plus, TrendingUp } from 'lucide-react';
 import { supabase } from '../../supabase/client';
+import { formatDistanceToNow } from 'date-fns';
 import SellerSidebar from '../../components/seller/SellerSidebar';
 import SellerHeader from '../../components/seller/SellerHeader';
 import OverviewCard from '../../components/seller/OverviewCard';
@@ -9,9 +10,8 @@ import PropertyCard from '../../components/seller/PropertyCard';
 import RecentOfferCard from '../../components/seller/RecentOfferCard';
 import WeeklyViewsChart from '../../components/seller/WeeklyViewsChart';
 import TopPerformerCard from '../../components/seller/TopPerformerCard';
+import type { PropertyListing, OverviewMetric } from '../../data/mockSellerData';
 import {
-  overviewMetrics,
-  propertyListings,
   recentOffers,
   weeklyViewsData,
   topPerformer,
@@ -21,6 +21,14 @@ export default function SellerDashboard() {
   const { userId: urlUserId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [propertyListings, setPropertyListings] = useState<PropertyListing[]>([]);
+  const [loadingProperties, setLoadingProperties] = useState(true);
+  const [overviewMetrics, setOverviewMetrics] = useState<OverviewMetric[]>([
+    { id: '1', label: 'Total Properties Listed', value: 0, icon: 'home' },
+    { id: '2', label: 'Active Listings', value: 0, icon: 'trending-up' },
+    { id: '3', label: 'Offers Received', value: 0, icon: 'file-text' },
+    { id: '4', label: 'Average Property Views', value: 0, icon: 'eye' },
+  ]);
 
   // Validate userId from URL matches current session user
   useEffect(() => {
@@ -49,9 +57,116 @@ export default function SellerDashboard() {
 
     validateUser();
   }, [urlUserId, navigate]);
-  
-  // Use userId to fetch seller-specific data
-  // Example: const { data } = await supabase.from('properties').select('*').eq('seller_id', urlUserId);
+
+  // Fetch properties for the logged-in user
+  useEffect(() => {
+    if (!isAuthorized) return;
+
+    const fetchProperties = async () => {
+      try {
+        setLoadingProperties(true);
+        
+        // Get logged-in user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setLoadingProperties(false);
+          return;
+        }
+
+        // Fetch properties filtered by user_id
+        const { data: properties, error: propertiesError } = await supabase
+          .from("properties")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (propertiesError) {
+          console.error('Error fetching properties:', propertiesError);
+          setPropertyListings([]);
+          setOverviewMetrics([
+            { id: '1', label: 'Total Properties Listed', value: 0, icon: 'home' },
+            { id: '2', label: 'Active Listings', value: 0, icon: 'trending-up' },
+            { id: '3', label: 'Offers Received', value: 0, icon: 'file-text' },
+            { id: '4', label: 'Average Property Views', value: 0, icon: 'eye' },
+          ]);
+        } else if (properties) {
+          // Fetch offers for all seller's properties
+          const propertyIds = properties.map((p: any) => p.id);
+          let offersCountMap: Record<number, number> = {};
+          let offersReceived = 0;
+          
+          if (propertyIds.length > 0) {
+            const { data: offersData, error: offersError } = await supabase
+              .from('offers')
+              .select('property_id')
+              .in('property_id', propertyIds);
+
+            if (!offersError && offersData) {
+              offersReceived = offersData.length;
+              offersData.forEach((offer: any) => {
+                const propId = offer.property_id;
+                offersCountMap[propId] = (offersCountMap[propId] || 0) + 1;
+              });
+            }
+          }
+
+          // Compute dashboard statistics
+          const totalProperties = properties.length;
+          const activeListings = properties.filter((p: any) => {
+            const status = (p.status || 'active').toLowerCase();
+            return status === 'active';
+          }).length;
+          
+          const avgViews = properties.length > 0
+            ? Math.round(properties.reduce((sum: number, p: any) => sum + (p.views || 0), 0) / properties.length)
+            : 0;
+
+          // Update overview metrics with computed values
+          setOverviewMetrics([
+            { id: '1', label: 'Total Properties Listed', value: totalProperties, icon: 'home' },
+            { id: '2', label: 'Active Listings', value: activeListings, icon: 'trending-up' },
+            { id: '3', label: 'Offers Received', value: offersReceived, icon: 'file-text' },
+            { id: '4', label: 'Average Property Views', value: avgViews, icon: 'eye' },
+          ]);
+
+          // Transform properties to match PropertyListing interface
+          const transformedProperties: PropertyListing[] = properties.map((prop: any) => {
+            const address = prop.location 
+              ? `${prop.location}${prop.city ? `, ${prop.city}` : ''}`
+              : prop.city || '';
+            
+            const status = (prop.status || 'Active').charAt(0).toUpperCase() + (prop.status || 'Active').slice(1).toLowerCase();
+            const validStatus = status === 'Active' || status === 'Pending' || status === 'Sold' 
+              ? status as 'Active' | 'Pending' | 'Sold'
+              : 'Active';
+
+            return {
+              id: String(prop.id),
+              title: prop.title || 'Untitled Property',
+              address: address,
+              image: prop.image_url || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop',
+              status: validStatus,
+              views: prop.views || 0,
+              offers: offersCountMap[prop.id] || 0,
+              lastUpdated: prop.created_at 
+                ? formatDistanceToNow(new Date(prop.created_at), { addSuffix: true })
+                : 'Recently',
+            };
+          });
+
+          setPropertyListings(transformedProperties);
+        }
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+        setPropertyListings([]);
+      } finally {
+        setLoadingProperties(false);
+      }
+    };
+
+    fetchProperties();
+  }, [isAuthorized]);
 
   // Show loading while validating authorization
   if (isAuthorized === null) {
@@ -154,11 +269,22 @@ export default function SellerDashboard() {
                 <div className="col-span-3 text-right">ACTIONS</div>
               </div>
               
-              <div className="space-y-3">
-                {propertyListings.map((property) => (
-                  <PropertyCard key={property.id} property={property} />
-                ))}
-              </div>
+              {loadingProperties ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="mt-4 text-gray-600">Loading properties...</p>
+                </div>
+              ) : propertyListings.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No properties found. Add your first property to get started!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {propertyListings.map((property) => (
+                    <PropertyCard key={property.id} property={property} />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Recent Offers & Weekly Views */}
