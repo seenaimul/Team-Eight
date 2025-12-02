@@ -1,6 +1,5 @@
 import { Bell, Heart, Home, LogIn, Phone, Search, TrendingUp } from 'lucide-react';
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "../supabase/client";
 import { useAuth } from '../context/AuthContext'
 import logo from '../assets/logo.png'
 import { NavButton } from './NavButton';
@@ -22,12 +21,6 @@ export function Header() {
         {to: '/contact', id: 'contact', label: 'Contact', icon: Phone},
         {to: '/add', id: 'add', label: 'Add a Listing', icon: Heart, protected: true}
     ];
-
-    async function handleSignOut() {
-        await supabase.auth.signOut();
-        window.location.href = "/"; // hard refresh
-      }
-
 
     return (
             <header className="sticky top-0 z-50 h-[80px] bg-white shadow-sm">
@@ -53,17 +46,12 @@ export function Header() {
                         </nav>
                 
                 
-                {/* Auth Buttons -> Conditional Rendering */}
+                {/* Auth Buttons */}
                 
                 <div className="flex flex-row mt-1">
-                
-                {!user ? (
-                <>
                 <NavButton id="/signin" label="Sign In" icon={LogIn} onClick={() => navigate("/signin")} />
                 <div className="m-2"></div>
                 <NavButton id="/signup" label="Sign Up" active={location.pathname === "/signup"} onClick={() => navigate("/signup")}/>
-                </>
-                ) : (<NavButton id="/signout" label="Sign Out" icon={LogIn} onClick={handleSignOut} active={true}/>)}
                 </div>
             </div>
     

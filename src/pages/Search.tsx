@@ -12,9 +12,19 @@ export default function PropertyLayout() {
 
   useEffect(() => {
     async function loadProperties() {
-      const { data, error } = await supabase.from("properties").select("*");
-      if (!error && data) {
-        setProperties(data);
+      const { data: properties, error } = await supabase
+        .from("properties")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      console.log("PROPERTIES LOADED:", properties);
+      
+      if (error) {
+        console.error("Error loading properties:", error);
+      }
+      
+      if (!error && properties) {
+        setProperties(properties);
       }
       setLoading(false);
     }
