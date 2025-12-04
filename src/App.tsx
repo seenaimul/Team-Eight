@@ -12,6 +12,8 @@ import ListingSuccess from "./pages/ListingSuccess";
 import SellerDashboard from "./pages/seller/SellerDashboard";
 import AddProperty from "./pages/seller/AddProperty";
 import MyProperties from "./pages/seller/MyProperties";
+import OffersReceived from "./pages/seller/OffersReceived";
+import ProfileSettings from "./pages/seller/ProfileSettings";
 import BuyerDashboard from "./pages/buyer/BuyerDashboard";
 import AgentDashboard from "./pages/agent/AgentDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -89,10 +91,7 @@ function App() {
             path="/seller/:userId/offers"
             element={
               <ProtectedRoute requiredRole="seller">
-                <div className="min-h-screen bg-gray-50 p-6">
-                  <h1 className="text-2xl font-bold">Offers Received</h1>
-                  <p className="text-gray-600 mt-2">This page is coming soon.</p>
-                </div>
+                <OffersReceived />
               </ProtectedRoute>
             }
           />
@@ -100,10 +99,7 @@ function App() {
             path="/seller/:userId/settings"
             element={
               <ProtectedRoute requiredRole="seller">
-                <div className="min-h-screen bg-gray-50 p-6">
-                  <h1 className="text-2xl font-bold">Profile Settings</h1>
-                  <p className="text-gray-600 mt-2">This page is coming soon.</p>
-                </div>
+                <ProfileSettings />
               </ProtectedRoute>
             }
           />
