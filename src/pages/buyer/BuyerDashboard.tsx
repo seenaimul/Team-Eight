@@ -119,7 +119,28 @@ export default function BuyerDashboard() {
         if (savedError) {
           console.error('Error fetching saved properties:', savedError);
         } else if (saved) {
-          setSavedProperties(saved as SavedProperty[]);
+          // Transform Supabase data to match SavedProperty interface
+          const transformedSaved: SavedProperty[] = saved.map((item: any) => {
+            // Handle properties - could be array or single object from Supabase join
+            const propertyData = Array.isArray(item.properties) 
+              ? item.properties[0] 
+              : item.properties;
+            
+            return {
+              id: item.id,
+              property_id: item.property_id,
+              user_id: item.user_id,
+              created_at: item.created_at,
+              properties: propertyData || {
+                id: item.property_id,
+                title: '',
+                location: '',
+                city: '',
+                price: 0,
+              },
+            };
+          });
+          setSavedProperties(transformedSaved);
         }
 
         // Fetch offers with property details

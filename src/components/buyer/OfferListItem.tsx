@@ -1,6 +1,5 @@
 import { MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
 
 interface Property {
   id: number;
@@ -25,7 +24,6 @@ interface OfferListItemProps {
 }
 
 export default function OfferListItem({ offer }: OfferListItemProps) {
-  const navigate = useNavigate();
 
   const formatPrice = (amount: number | string) => {
     if (typeof amount === 'string') {
