@@ -17,6 +17,7 @@ import BuyerDashboard from "./pages/buyer/BuyerDashboard";
 import SearchProperties from "./pages/buyer/SearchProperties";
 import AgentDashboard from "./pages/agent/AgentDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import ContactPage from "./pages/Contact";
 
 function App() {
   const location = useLocation();
@@ -43,6 +44,7 @@ function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/property/:id" element={<PropertyDetailsPage />} />
           <Route path="/listing-success" element={<ListingSuccess />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route
             path="/unauthorized"
             element={
