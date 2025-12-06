@@ -259,7 +259,7 @@ export default function BuyerDashboard() {
           <div className="px-8 py-6">
             {/* Page Header */}
             <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Buyer Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Buyer / Renter Dashboard</h1>
               <p className="text-gray-600">Manage your saved homes, offers, alerts, and preferences.</p>
             </div>
 

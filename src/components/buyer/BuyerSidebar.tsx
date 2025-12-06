@@ -94,7 +94,7 @@ export default function BuyerSidebar() {
               <img src={logo} alt="FindThatHome" className="w-10 h-10" />
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">FindThatHome</h1>
-                <p className="text-xs text-gray-500">Buyer Portal</p>
+                <p className="text-xs text-gray-500">Buyer / Renter Portal</p>
               </div>
             </div>
           </div>

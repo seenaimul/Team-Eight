@@ -226,8 +226,8 @@ export default function SignUp() {
                 className="w-full rounded-md border px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-200 focus:border-blue-500"
               >
                 <option value="">Select user type</option>
-                <option value="buyer">Buyer</option>
-                <option value="seller">Seller</option>
+                <option value="buyer">Buyer / Renter</option>
+                <option value="seller">Agent / Landlord</option>
               </select>
             </div>
 

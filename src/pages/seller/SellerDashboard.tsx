@@ -207,7 +207,7 @@ export default function SellerDashboard() {
           <div className="p-6 space-y-6">
             {/* Page Header */}
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Seller Dashboard</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Agent / Landlord Dashboard</h2>
               <p className="text-gray-600 mt-1">Manage your property listings and track performance.</p>
             </div>
 
