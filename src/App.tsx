@@ -13,6 +13,7 @@ import AddProperty from "./pages/seller/AddProperty";
 import MyProperties from "./pages/seller/MyProperties";
 import OffersReceived from "./pages/seller/OffersReceived";
 import ProfileSettings from "./pages/seller/ProfileSettings";
+import SellerPropertyDetailsPage from "./pages/seller/PropertyDetailsPage";
 import BuyerDashboard from "./pages/buyer/BuyerDashboard";
 import SearchProperties from "./pages/buyer/SearchProperties";
 import AgentDashboard from "./pages/agent/AgentDashboard";
@@ -105,6 +106,14 @@ function App() {
             element={
               <ProtectedRoute requiredRole="seller">
                 <ProfileSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/seller/:userId/property/:propertyId"
+            element={
+              <ProtectedRoute requiredRole="seller">
+                <SellerPropertyDetailsPage />
               </ProtectedRoute>
             }
           />

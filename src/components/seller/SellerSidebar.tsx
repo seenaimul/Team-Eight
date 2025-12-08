@@ -29,15 +29,14 @@ export default function SellerSidebar() {
 
   // Get current user ID from session as fallback
   useEffect(() => {
-    if (!userId) {
-      const getCurrentUserId = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setCurrentUserId(session.user.id);
-        }
-      };
-      getCurrentUserId();
-    }
+    const getCurrentUserId = async () => {
+      // Always fetch the logged-in user to ensure we have the correct ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    getCurrentUserId();
   }, [userId]);
 
   // Use userId from URL params (preferred), fallback to currentUserId from session

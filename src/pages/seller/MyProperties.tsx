@@ -46,17 +46,17 @@ export default function MyProperties() {
         return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
+      // Fetch the logged-in user from Supabase
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
-      if (!session?.user) {
+      if (userError || !user) {
         navigate('/signin');
         return;
       }
 
-      if (session.user.id !== urlUserId) {
-        // User trying to access another user's data - unauthorized
-        navigate('/unauthorized');
-        setIsAuthorized(false);
+      // If user.id !== userId, redirect to correct dashboard
+      if (user.id !== urlUserId) {
+        navigate(`/seller/${user.id}/dashboard`);
         return;
       }
 
@@ -68,30 +68,34 @@ export default function MyProperties() {
 
   // Fetch properties from Supabase
   useEffect(() => {
-    if (!user || !isAuthorized || !urlUserId) return;
+    if (!isAuthorized || !urlUserId) return;
 
     const fetchProperties = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Get authenticated user's ID
-        const { data: userData, error: userError } = await supabase.auth.getUser();
+        // Fetch the logged-in user from Supabase
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
         
-        if (userError || !userData?.user) {
+        if (userError || !user) {
           console.error('Auth error:', userError);
           setError('You must be logged in to view your properties.');
           setLoading(false);
           return;
         }
 
-        const currentUser = userData.user;
+        // Check authorization again
+        if (user.id !== urlUserId) {
+          navigate(`/seller/${user.id}/dashboard`);
+          return;
+        }
 
-        // Fetch only properties where user_id matches the authenticated user
+        // Load properties only for that user
         const { data, error: fetchError } = await supabase
           .from('properties')
           .select('*')
-          .eq('user_id', currentUser.id)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
         if (fetchError) {
@@ -126,7 +130,7 @@ export default function MyProperties() {
     };
 
     fetchProperties();
-  }, [user, isAuthorized, urlUserId]);
+  }, [isAuthorized, urlUserId, navigate]);
 
   // Apply search, filter, and sort
   useEffect(() => {

@@ -1,4 +1,7 @@
 import { MoreVertical, Eye, FileText } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '../../supabase/client';
 import type { Property } from '../../types';
 
 interface PropertyWithExtras extends Property {
@@ -19,6 +22,22 @@ const statusColors = {
 };
 
 export default function MyPropertyCard({ property }: MyPropertyCardProps) {
+  const { userId } = useParams<{ userId: string }>();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Fetch the logged-in user from Supabase
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    getUser();
+  }, []);
+
+  const activeUserId = userId || currentUserId;
+
   // Get the first image from image_urls or use image_url or placeholder
   // Handle both image_url (singular) and image_urls (plural) for compatibility
   const imageUrl =
@@ -36,8 +55,28 @@ export default function MyPropertyCard({ property }: MyPropertyCardProps) {
     ? `${property.location}, ${property.city}`
     : property.city;
 
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Handle menu action here if needed
+  };
+
+  if (!activeUserId) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  const propertyLink = `/seller/${activeUserId}/property/${property.id}`;
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow duration-200">
+    <Link
+      to={propertyLink}
+      className="block w-full"
+    >
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:bg-gray-50 hover:shadow-md transition-all duration-200 cursor-pointer rounded-lg">
       <div className="flex items-start gap-4">
         {/* Property Image */}
         <div className="w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
@@ -103,6 +142,7 @@ export default function MyPropertyCard({ property }: MyPropertyCardProps) {
                 {status}
               </span>
               <button
+                onClick={handleActionClick}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 aria-label="More options"
               >
@@ -112,7 +152,8 @@ export default function MyPropertyCard({ property }: MyPropertyCardProps) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </Link>
   );
 }
 

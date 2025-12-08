@@ -9,6 +9,7 @@ export interface Property {
     postcode: string;
     bedrooms: number;
     property_type: string;
+    listing_type: string;
     near_park?: boolean;
     near_school?: boolean;
     noise_level?: number;

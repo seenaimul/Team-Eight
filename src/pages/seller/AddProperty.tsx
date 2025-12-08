@@ -21,6 +21,7 @@ export default function AddProperty() {
   // Form state
   const [title, setTitle] = useState('');
   const [propertyType, setPropertyType] = useState('House');
+  const [listingType, setListingType] = useState('sell');
   const [bedrooms, setBedrooms] = useState<number | ''>('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState<number | ''>('');
@@ -121,6 +122,7 @@ export default function AddProperty() {
     const newErrors: Record<string, string> = {};
 
     if (!title.trim()) newErrors.title = 'Property title is required';
+    if (!listingType || listingType.trim() === '') newErrors.listingType = 'Listing type is required';
     if (!bedrooms || bedrooms < 1) newErrors.bedrooms = 'Number of bedrooms is required';
     if (!description.trim() || description.length < 50) {
       newErrors.description = 'Description must be at least 50 characters';
@@ -178,6 +180,7 @@ export default function AddProperty() {
           postcode: postcode.trim(),
           bedrooms: Number(bedrooms),
           property_type: propertyType,
+          listing_type: listingType,
           near_park: nearPark,
           near_school: nearSchool,
           noise_level: noiseLevel,
@@ -320,6 +323,25 @@ export default function AddProperty() {
                       <option value="Detached">Detached</option>
                       <option value="Semi-detached">Semi-detached</option>
                     </select>
+                  </div>
+
+                  {/* Listing Type */}
+                  <div>
+                    <label htmlFor="listingType" className="block text-sm font-medium text-gray-700 mb-2">
+                      Listing Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="listingType"
+                      value={listingType}
+                      onChange={(e) => setListingType(e.target.value)}
+                      className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        errors.listingType ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="sell">Sell</option>
+                      <option value="rent">Rent</option>
+                    </select>
+                    {errors.listingType && <p className="mt-1 text-sm text-red-600">{errors.listingType}</p>}
                   </div>
 
                   {/* Number of Bedrooms */}

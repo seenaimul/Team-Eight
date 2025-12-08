@@ -1,4 +1,7 @@
 import { MoreVertical, Eye, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '../../supabase/client';
 import type { PropertyListing } from '../../data/mockSellerData';
 
 interface PropertyCardProps {
@@ -12,8 +15,41 @@ const statusColors = {
 };
 
 export default function PropertyCard({ property }: PropertyCardProps) {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Fetch the logged-in user from Supabase
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUser();
+  }, []);
+
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Handle menu action here if needed
+  };
+
+  if (!userId) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  const propertyLink = `/seller/${userId}/property/${property.id}`;
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow duration-200">
+    <Link
+      to={propertyLink}
+      className="block w-full"
+    >
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:bg-gray-50 hover:shadow-md transition-all duration-200 cursor-pointer">
       {/* Mobile Layout */}
       <div className="md:hidden flex items-center gap-4">
         <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
@@ -40,7 +76,11 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             </div>
           </div>
         </div>
-        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <button
+          onClick={handleActionClick}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          aria-label="More options"
+        >
           <MoreVertical className="w-5 h-5 text-gray-600" />
         </button>
       </div>
@@ -88,12 +128,17 @@ export default function PropertyCard({ property }: PropertyCardProps) {
 
         {/* Actions Column */}
         <div className="col-span-3 flex justify-end">
-          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button
+            onClick={handleActionClick}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="More options"
+          >
             <MoreVertical className="w-5 h-5 text-gray-600" />
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </Link>
   );
 }
 
