@@ -59,10 +59,26 @@ export default function BuyerOffers() {
     const fetchOffers = async () => {
       setLoading(true);
 
+      // Get current user from session instead of URL param
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
+
+      if (!currentUserId) {
+        setOffers([]);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("offers")
-        .select("*, properties(*)")
-        .eq("user_id", userId)
+        .select(`
+          id,
+          offer_type,
+          status,
+          submitted_at,
+          properties (*)
+        `)
+        .eq("user_id", currentUserId)
         .order("submitted_at", { ascending: false });
 
       if (error) {
@@ -76,7 +92,7 @@ export default function BuyerOffers() {
     };
 
     fetchOffers();
-  }, [isAuthorized, userId]);
+  }, [isAuthorized]);
 
   if (isAuthorized === null) {
     return (

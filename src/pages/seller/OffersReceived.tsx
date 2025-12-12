@@ -43,139 +43,139 @@ export default function OffersReceived() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchOffers = async () => {
-      if (!userId) return;
+  const fetchOffers = async () => {
+    if (!userId) return;
 
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Step 1: Get current user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-          throw new Error('Failed to get authenticated user');
-        }
+      // Step 1: Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        throw new Error('Failed to get authenticated user');
+      }
 
-        // Step 2: Verify userId matches
-        if (user.id !== userId) {
-          throw new Error('Unauthorized');
-        }
+      // Step 2: Verify userId matches
+      if (user.id !== userId) {
+        throw new Error('Unauthorized');
+      }
 
-        // Step 3: Fetch seller's properties
-        const { data: properties, error: propertiesError } = await supabase
-          .from('properties')
-          .select('id, title, image_url, location, city, price')
-          .eq('user_id', user.id);
+      // Step 3: Fetch seller's properties
+      const { data: properties, error: propertiesError } = await supabase
+        .from('properties')
+        .select('id, title, image_url, location, city, price')
+        .eq('user_id', user.id);
 
-        if (propertiesError) {
-          throw new Error(`Failed to fetch properties: ${propertiesError.message}`);
-        }
+      if (propertiesError) {
+        throw new Error(`Failed to fetch properties: ${propertiesError.message}`);
+      }
 
-        const sellerProperties = properties || [];
+      const sellerProperties = properties || [];
 
-        // Step 4: Fetch offers for seller's properties
-        const propertyIds = sellerProperties.map((p: any) => p.id);
-        if (propertyIds.length === 0) {
-          setOffersData([]);
-          setLoading(false);
-          return;
-        }
+      // Step 4: Fetch offers for seller's properties
+      const propertyIds = sellerProperties.map((p: any) => p.id);
+      if (propertyIds.length === 0) {
+        setOffersData([]);
+        setLoading(false);
+        return;
+      }
 
-        const { data: offers, error: offersError } = await supabase
-          .from('offers')
-          .select('*')
-          .in('property_id', propertyIds)
-          .order('submitted_at', { ascending: false });
+      const { data: offers, error: offersError } = await supabase
+        .from('offers')
+        .select('*')
+        .in('property_id', propertyIds)
+        .order('submitted_at', { ascending: false });
 
-        if (offersError) {
-          throw new Error(`Failed to fetch offers: ${offersError.message}`);
-        }
+      if (offersError) {
+        throw new Error(`Failed to fetch offers: ${offersError.message}`);
+      }
 
-        if (!offers || offers.length === 0) {
-          setOffersData([]);
-          setLoading(false);
-          return;
-        }
+      if (!offers || offers.length === 0) {
+        setOffersData([]);
+        setLoading(false);
+        return;
+      }
 
-        // Step 5: For each offer, fetch buyer info and combine data
-        const combinedData = await Promise.all(
-          (offers as Offer[]).map(async (offer: Offer): Promise<CombinedOfferData | null> => {
-            // Fetch buyer info
-            const { data: buyer, error: buyerError } = await supabase
-              .from('users')
-              .select('first_name, last_name, email, phone')
-              .eq('id', offer.user_id)
-              .single();
+      // Step 5: For each offer, fetch buyer info and combine data
+      const combinedData = await Promise.all(
+        (offers as Offer[]).map(async (offer: Offer): Promise<CombinedOfferData | null> => {
+          // Fetch buyer info
+          const { data: buyer, error: buyerError } = await supabase
+            .from('users')
+            .select('first_name, last_name, email, phone')
+            .eq('id', offer.user_id)
+            .single();
 
-            if (buyerError || !buyer) {
-              console.error(`Failed to fetch buyer for offer ${offer.id}:`, buyerError);
-              // Return a placeholder buyer if fetch fails
-              return {
-                offerId: offer.id,
-                status: offer.status,
-                offerType: offer.offer_type,
-                submittedAt: offer.submitted_at,
-                offerAmount: offer.offer_amount || 0,
-                buyer: {
-                  first_name: 'Unknown',
-                  last_name: 'Buyer',
-                  email: 'N/A',
-                },
-                property: sellerProperties.find((p: any) => p.id === offer.property_id) || {
-                  id: offer.property_id,
-                  title: 'Unknown Property',
-                  image_url: '',
-                  location: '',
-                  city: '',
-                  price: 0,
-                },
-              };
-            }
-
-            // Find the property for this offer
-            const property = sellerProperties.find((p: any) => p.id === offer.property_id);
-            if (!property) {
-              console.error(`Property not found for offer ${offer.id}`);
-              return null;
-            }
-
+          if (buyerError || !buyer) {
+            console.error(`Failed to fetch buyer for offer ${offer.id}:`, buyerError);
+            // Return a placeholder buyer if fetch fails
             return {
               offerId: offer.id,
               status: offer.status,
               offerType: offer.offer_type,
               submittedAt: offer.submitted_at,
-              offerAmount: offer.offer_amount ?? (offer.offer_type?.toLowerCase() === 'rent' ? '£0/month' : 0),
+              offerAmount: offer.offer_amount || 0,
               buyer: {
-                first_name: buyer.first_name || '',
-                last_name: buyer.last_name || '',
-                email: buyer.email || '',
-                phone: buyer.phone || undefined,
+                first_name: 'Unknown',
+                last_name: 'Buyer',
+                email: 'N/A',
               },
-              property: {
-                id: property.id,
-                title: property.title,
-                image_url: property.image_url || '',
-                location: property.location || '',
-                city: property.city || '',
-                price: property.price || 0,
+              property: sellerProperties.find((p: any) => p.id === offer.property_id) || {
+                id: offer.property_id,
+                title: 'Unknown Property',
+                image_url: '',
+                location: '',
+                city: '',
+                price: 0,
               },
             };
-          })
-        );
+          }
 
-        // Filter out null values
-        const validData = combinedData.filter((item): item is CombinedOfferData => item !== null);
-        setOffersData(validData);
-      } catch (err: any) {
-        console.error('Error fetching offers:', err);
-        setError(err.message || 'Failed to load offers. Please try again.');
-        setOffersData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+          // Find the property for this offer
+          const property = sellerProperties.find((p: any) => p.id === offer.property_id);
+          if (!property) {
+            console.error(`Property not found for offer ${offer.id}`);
+            return null;
+          }
 
+          return {
+            offerId: offer.id,
+            status: offer.status,
+            offerType: offer.offer_type,
+            submittedAt: offer.submitted_at,
+            offerAmount: offer.offer_amount ?? (offer.offer_type?.toLowerCase() === 'rent' ? '£0/month' : 0),
+            buyer: {
+              first_name: buyer.first_name || '',
+              last_name: buyer.last_name || '',
+              email: buyer.email || '',
+              phone: buyer.phone || undefined,
+            },
+            property: {
+              id: property.id,
+              title: property.title,
+              image_url: property.image_url || '',
+              location: property.location || '',
+              city: property.city || '',
+              price: property.price || 0,
+            },
+          };
+        })
+      );
+
+      // Filter out null values
+      const validData = combinedData.filter((item): item is CombinedOfferData => item !== null);
+      setOffersData(validData);
+    } catch (err: any) {
+      console.error('Error fetching offers:', err);
+      setError(err.message || 'Failed to load offers. Please try again.');
+      setOffersData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchOffers();
   }, [userId]);
 
@@ -218,6 +218,10 @@ export default function OffersReceived() {
                     }}
                     buyer={offerData.buyer}
                     property={offerData.property}
+                    onStatusUpdate={() => {
+                      // Refresh offers after status update
+                      fetchOffers();
+                    }}
                   />
                 ))}
               </div>

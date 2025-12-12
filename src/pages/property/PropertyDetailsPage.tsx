@@ -68,6 +68,13 @@ export default function PropertyDetailsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [offerType, setOfferType] = useState<'buy' | 'rent'>('buy');
+  const [offerAmount, setOfferAmount] = useState<string>('');
+  const [submittingOffer, setSubmittingOffer] = useState(false);
+  const [offerError, setOfferError] = useState<string | null>(null);
+  const [hasExistingOffer, setHasExistingOffer] = useState(false);
+  const [existingOfferStatus, setExistingOfferStatus] = useState<string | null>(null);
 
   // Fetch user role and property
   useEffect(() => {
@@ -112,6 +119,19 @@ export default function PropertyDetailsPage() {
             // If data exists, property is saved
             // If error is PGRST116 (no rows), property is not saved (this is expected)
             setIsSaved(!savedError && !!savedData);
+
+            // Check if buyer already made an offer on this property
+            const { data: existingOffer, error: offerError } = await supabase
+              .from('offers')
+              .select('id, status')
+              .eq('user_id', user.id)
+              .eq('property_id', Number(id))
+              .maybeSingle();
+            
+            if (!offerError && existingOffer) {
+              setHasExistingOffer(true);
+              setExistingOfferStatus(existingOffer.status);
+            }
           }
         }
 
@@ -270,8 +290,70 @@ export default function PropertyDetailsPage() {
       navigate('/signin');
       return;
     }
-    // Navigate to make offer page (you may need to create this)
-    navigate(`/buyer/${currentUserId}/offers?property=${id}`);
+    if (hasExistingOffer) {
+      // Offer already exists, don't allow another
+      return;
+    }
+    setShowOfferModal(true);
+  };
+
+  const handleSubmitOffer = async () => {
+    if (!currentUserId || !id || submittingOffer) return;
+
+    setSubmittingOffer(true);
+    setOfferError(null);
+
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        setOfferError('Please sign in to make an offer.');
+        navigate('/signin');
+        return;
+      }
+
+      // Check for duplicate offer
+      const { data: existingOffer } = await supabase
+        .from('offers')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('property_id', Number(id))
+        .maybeSingle();
+
+      if (existingOffer) {
+        setOfferError('You have already made an offer on this property.');
+        setSubmittingOffer(false);
+        return;
+      }
+
+      // Insert new offer
+      const { error } = await supabase
+        .from('offers')
+        .insert({
+          user_id: user.id,
+          property_id: Number(id),
+          offer_type: offerType,
+          status: 'pending',
+          submitted_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        console.error('Error submitting offer:', error);
+        setOfferError('Failed to submit offer. Please try again.');
+      } else {
+        // Success - close modal and update state
+        setShowOfferModal(false);
+        setHasExistingOffer(true);
+        setExistingOfferStatus('pending');
+        setOfferAmount('');
+        setOfferType('buy');
+      }
+    } catch (err) {
+      console.error('Error submitting offer:', err);
+      setOfferError('An error occurred. Please try again.');
+    } finally {
+      setSubmittingOffer(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -815,10 +897,15 @@ export default function PropertyDetailsPage() {
                       </button>
                       <button
                         onClick={handleMakeOffer}
-                        className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        disabled={hasExistingOffer}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+                          hasExistingOffer
+                            ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
                       >
                         <MessageSquare className="w-4 h-4" />
-                        Make an Offer
+                        {hasExistingOffer ? `Offer Sent ${existingOfferStatus === 'accepted' ? '✓ (Accepted)' : existingOfferStatus === 'rejected' ? '✗ (Rejected)' : '✓'}` : 'Make an Offer'}
                       </button>
                     </div>
                     {saveError && (
@@ -833,6 +920,91 @@ export default function PropertyDetailsPage() {
           </div>
         </main>
       </div>
+
+      {/* Make Offer Modal */}
+      {showOfferModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-50"
+            onClick={() => {
+              if (!submittingOffer) {
+                setShowOfferModal(false);
+                setOfferError(null);
+              }
+            }}
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <Card className="max-w-md w-full mx-4">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Make an Offer</h3>
+              
+              {offerError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
+                  {offerError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {/* Offer Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Offer Type
+                  </label>
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setOfferType('buy')}
+                      disabled={submittingOffer}
+                      className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
+                        offerType === 'buy'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      } ${submittingOffer ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      Buy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOfferType('rent')}
+                      disabled={submittingOffer}
+                      className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
+                        offerType === 'rent'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      } ${submittingOffer ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      Rent
+                    </button>
+                  </div>
+                </div>
+
+                {/* Optional Message/Amount - can be added later if needed */}
+              </div>
+
+              <div className="flex gap-4 mt-6">
+                <button
+                  onClick={() => {
+                    if (!submittingOffer) {
+                      setShowOfferModal(false);
+                      setOfferError(null);
+                    }
+                  }}
+                  disabled={submittingOffer}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitOffer}
+                  disabled={submittingOffer}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {submittingOffer ? 'Submitting...' : 'Submit Offer'}
+                </button>
+              </div>
+            </Card>
+          </div>
+        </>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (

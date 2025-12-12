@@ -1,5 +1,7 @@
 import { MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
+import { supabase } from '../../supabase/client';
+import { useState } from 'react';
 
 interface Buyer {
   first_name: string;
@@ -29,9 +31,12 @@ interface OfferCardProps {
   offer: Offer;
   buyer: Buyer;
   property: Property;
+  onStatusUpdate?: () => void;
 }
 
-export default function OfferCard({ offer, buyer, property }: OfferCardProps) {
+export default function OfferCard({ offer, buyer, property, onStatusUpdate }: OfferCardProps) {
+  const [currentStatus, setCurrentStatus] = useState(offer.status);
+  const [updating, setUpdating] = useState(false);
   const buyerName = `${buyer.first_name} ${buyer.last_name}`;
   const location = `${property.location}, ${property.city}`;
   
@@ -67,6 +72,33 @@ export default function OfferCard({ offer, buyer, property }: OfferCardProps) {
         return 'bg-red-100 text-red-700';
       default:
         return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const handleStatusUpdate = async (newStatus: 'accepted' | 'rejected') => {
+    if (updating || currentStatus !== 'pending') return;
+
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ status: newStatus })
+        .eq('id', offer.id);
+
+      if (error) {
+        console.error('Error updating offer status:', error);
+        alert('Failed to update offer status. Please try again.');
+      } else {
+        setCurrentStatus(newStatus);
+        if (onStatusUpdate) {
+          onStatusUpdate();
+        }
+      }
+    } catch (err) {
+      console.error('Error updating offer status:', err);
+      alert('An error occurred. Please try again.');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -118,19 +150,39 @@ export default function OfferCard({ offer, buyer, property }: OfferCardProps) {
           </div>
         </div>
 
-        {/* Right Block - Status Badge (top) and Menu (bottom) */}
-        <div className="flex flex-row md:flex-col items-start md:items-end justify-between md:justify-between md:min-h-full">
+        {/* Right Block - Status Badge and Actions */}
+        <div className="flex flex-col items-end gap-3">
           <span
-            className={`px-3 py-1.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(offer.status)}`}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(currentStatus)}`}
           >
-            {offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
+            {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
           </span>
-          <button 
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="More options"
-          >
-            <MoreVertical className="h-5 w-5 text-gray-400" />
-          </button>
+          
+          {currentStatus === 'pending' ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleStatusUpdate('accepted')}
+                disabled={updating}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {updating ? 'Updating...' : 'Accept'}
+              </button>
+              <button
+                onClick={() => handleStatusUpdate('rejected')}
+                disabled={updating}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {updating ? 'Updating...' : 'Reject'}
+              </button>
+            </div>
+          ) : (
+            <button 
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="More options"
+            >
+              <MoreVertical className="h-5 w-5 text-gray-400" />
+            </button>
+          )}
         </div>
       </div>
     </div>
