@@ -1,5 +1,6 @@
 import { MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 interface Property {
   id: number;
@@ -24,6 +25,12 @@ interface OfferListItemProps {
 }
 
 export default function OfferListItem({ offer }: OfferListItemProps) {
+  const navigate = useNavigate();
+
+  const handleMenuClick = (e: React.MouseEvent) => {
+    // Prevent navigation when clicking the kebab menu
+    e.stopPropagation();
+  };
 
   const formatPrice = (amount: number | string | null | undefined) => {
     if (amount === null || amount === undefined) {
@@ -57,8 +64,20 @@ export default function OfferListItem({ offer }: OfferListItemProps) {
   const location = `${property.location || ''}${property.city ? (property.location ? ', ' : '') + property.city : ''}`;
   const formattedDate = format(new Date(offer.submitted_at), 'MMM d, yyyy');
 
+  const handleCardClick = () => {
+    // Safety check: ensure property_id exists
+    // Use property_id from offer or fallback to property.id
+    const propertyId = offer.property_id || property?.id;
+    if (propertyId) {
+      navigate(`/property/${propertyId}`);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
+    <div 
+      className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+      onClick={handleCardClick}
+    >
       <div className="flex gap-6">
         {/* Property Image */}
         <div className="flex-shrink-0">
@@ -77,6 +96,7 @@ export default function OfferListItem({ offer }: OfferListItemProps) {
               <p className="text-sm text-gray-600 mb-2">{location}</p>
             </div>
             <button
+              onClick={handleMenuClick}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
               aria-label="More options"
             >
