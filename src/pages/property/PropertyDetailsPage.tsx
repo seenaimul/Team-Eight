@@ -64,6 +64,7 @@ export default function PropertyDetailsPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -101,14 +102,16 @@ export default function PropertyDetailsPage() {
 
           // Check if property is saved (for buyers)
           if (role === 'buyer') {
-            const { data: savedData } = await supabase
+            const { data: savedData, error: savedError } = await supabase
               .from('saved_properties')
               .select('id')
               .eq('user_id', user.id)
               .eq('property_id', Number(id))
-              .single();
+              .maybeSingle();
             
-            setIsSaved(!!savedData);
+            // If data exists, property is saved
+            // If error is PGRST116 (no rows), property is not saved (this is expected)
+            setIsSaved(!savedError && !!savedData);
           }
         }
 
@@ -197,10 +200,20 @@ export default function PropertyDetailsPage() {
   }, [id]);
 
   const handleSaveProperty = async () => {
-    if (!currentUserId || isSaving) return;
+    if (!currentUserId || isSaving || !id) return;
 
     setIsSaving(true);
     try {
+      // Get authenticated user to ensure we have the latest session
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        console.error('Error getting user:', userError);
+        setSaveError('Please sign in to save properties.');
+        navigate('/signin');
+        return;
+      }
+
       if (isSaved) {
         // Remove from saved
         const { error } = await supabase
@@ -209,11 +222,17 @@ export default function PropertyDetailsPage() {
           .eq('user_id', currentUserId)
           .eq('property_id', Number(id));
 
-        if (!error) {
+        if (error) {
+          console.error('Error removing saved property:', error);
+          setSaveError('Failed to remove saved property. Please try again.');
+          // Clear error after 5 seconds
+          setTimeout(() => setSaveError(null), 5000);
+        } else {
           setIsSaved(false);
+          setSaveError(null);
         }
       } else {
-        // Add to saved
+        // Add to saved - prevent duplicates
         const { error } = await supabase
           .from('saved_properties')
           .insert({
@@ -221,12 +240,26 @@ export default function PropertyDetailsPage() {
             property_id: Number(id),
           });
 
-        if (!error) {
+        if (error) {
+          // Check if it's a duplicate error (unique constraint violation)
+          if (error.code === '23505' || error.message.includes('duplicate')) {
+            // Property is already saved, just update the state
+            setIsSaved(true);
+            setSaveError(null);
+          } else {
+            console.error('Error saving property:', error);
+            setSaveError('Failed to save property. Please try again.');
+            // Clear error after 5 seconds
+            setTimeout(() => setSaveError(null), 5000);
+          }
+        } else {
           setIsSaved(true);
+          setSaveError(null);
         }
       }
     } catch (err) {
       console.error('Error saving property:', err);
+      setError('An error occurred. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -766,25 +799,34 @@ export default function PropertyDetailsPage() {
               {/* Buyer Actions - Only show if user is buyer and doesn't own property */}
               {isBuyer && !isOwner && (
                 <>
-                  <button
-                    onClick={handleSaveProperty}
-                    disabled={isSaving}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-                      isSaved
-                        ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-                    {isSaved ? 'Saved' : 'Save Property'}
-                  </button>
-                  <button
-                    onClick={handleMakeOffer}
-                    className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    Make an Offer
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-4">
+                      <button
+                        onClick={handleSaveProperty}
+                        disabled={isSaving || isSaved}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+                          isSaved
+                            ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                        {isSaving ? 'Saving...' : isSaved ? 'Saved ✓' : 'Save Property'}
+                      </button>
+                      <button
+                        onClick={handleMakeOffer}
+                        className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        Make an Offer
+                      </button>
+                    </div>
+                    {saveError && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+                        {saveError}
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </div>

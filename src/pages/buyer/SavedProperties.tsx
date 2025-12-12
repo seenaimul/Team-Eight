@@ -31,8 +31,9 @@ export default function SavedProperties() {
   const [savedProperties, setSavedProperties] = useState<SavedProperty[]>([]);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Validate user
+  // Validate user and get current user ID
   useEffect(() => {
     const validateUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -42,7 +43,11 @@ export default function SavedProperties() {
         return;
       }
 
-      if (session.user.id !== userId) {
+      const sessionUserId = session.user.id;
+      setCurrentUserId(sessionUserId);
+
+      // If userId param exists, validate it matches session user
+      if (userId && sessionUserId !== userId) {
         navigate("/unauthorized");
         setIsAuthorized(false);
         return;
@@ -56,15 +61,22 @@ export default function SavedProperties() {
 
   // Fetch saved properties
   useEffect(() => {
-    if (!isAuthorized) return;
+    if (!isAuthorized || !currentUserId) return;
 
     const fetchSaved = async () => {
       setLoading(true);
 
+      // Use currentUserId from session instead of URL param
       const { data, error } = await supabase
         .from("saved_properties")
-        .select("id, property_id, user_id, created_at, properties(*)")
-        .eq("user_id", userId);
+        .select(`
+          id,
+          property_id,
+          user_id,
+          created_at,
+          properties (*)
+        `)
+        .eq("user_id", currentUserId);
 
       if (error) {
         console.error("Error fetching saved properties:", error);
@@ -84,7 +96,7 @@ export default function SavedProperties() {
     };
 
     fetchSaved();
-  }, [isAuthorized, userId]);
+  }, [isAuthorized, currentUserId]);
 
   if (isAuthorized === null) {
     return (
@@ -134,7 +146,7 @@ export default function SavedProperties() {
               <div className="text-center py-16">
                 <p className="text-gray-500 text-lg">You have no saved homes yet.</p>
                 <button
-                  onClick={() => navigate(`/buyer/${userId}/search`)}
+                  onClick={() => navigate(currentUserId ? `/buyer/${currentUserId}/search` : '/search')}
                   className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Start Searching
