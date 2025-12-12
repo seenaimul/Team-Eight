@@ -22,12 +22,28 @@ interface Offer {
   };
 }
 
+type BuyerOffer = {
+  id: number;
+  user_id: string;
+  property_id: number;
+  offer_amount: number;
+  offer_type: string;
+  status: string;
+  submitted_at: string;
+  properties: {
+    id: number;
+    title: string;
+    location: string;
+    image_url: string;
+  };
+};
+
 export default function BuyerOffers() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
 
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const [offers, setOffers] = useState<BuyerOffer[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Validate user access
@@ -73,6 +89,8 @@ export default function BuyerOffers() {
         .from("offers")
         .select(`
           id,
+          user_id,
+          property_id,
           offer_amount,
           offer_type,
           status,

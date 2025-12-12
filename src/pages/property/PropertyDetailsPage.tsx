@@ -925,9 +925,9 @@ export default function PropertyDetailsPage() {
                       </button>
                       <button
                         onClick={handleMakeOffer}
-                        disabled={latestOffer && latestOffer.status !== 'rejected'}
+                        disabled={!!latestOffer && latestOffer.status !== 'rejected'}
                         className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-                          latestOffer && latestOffer.status !== 'rejected'
+                          !!latestOffer && latestOffer.status !== 'rejected'
                             ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
                             : 'bg-green-600 text-white hover:bg-green-700'
                         }`}

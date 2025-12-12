@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../supabase/client';
-import { useAuth } from '../../context/AuthContext';
 import SellerSidebar from '../../components/seller/SellerSidebar';
 import SellerHeader from '../../components/seller/SellerHeader';
 import MyPropertyCard from '../../components/seller/MyPropertyCard';
@@ -17,7 +16,6 @@ interface PropertyWithStatus extends Property {
 export default function MyProperties() {
   const navigate = useNavigate();
   const { userId: urlUserId } = useParams<{ userId: string }>();
-  const { user } = useAuth();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   // State
