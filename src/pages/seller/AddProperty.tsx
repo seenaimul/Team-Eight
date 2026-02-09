@@ -48,7 +48,7 @@ export default function AddProperty() {
       }
 
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session?.user) {
         navigate('/signin');
         return;
@@ -141,11 +141,11 @@ export default function AddProperty() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-  
+
     if (!validateForm()) return;
-  
+
     setLoading(true);
-  
+
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData?.user) {
@@ -153,63 +153,51 @@ export default function AddProperty() {
         setLoading(false);
         return;
       }
-  
+
       const user = userData.user;
-  
+
       // Upload image FIRST (same as before)
       const imageUrl = await uploadImageToSupabase();
       if (!imageUrl) throw new Error('Failed to upload image');
-  
-      // Build listing payload (DO NOT INSERT)
-      const listing = {
-        title: title.trim(),
-        description: description.trim(),
-        price: Number(price),
-        location: streetAddress.trim(),
-        city: city.trim(),
-        postcode: postcode.trim(),
-        bedrooms: Number(bedrooms),
-        property_type: propertyType,
-        listing_type: listingType,
-        near_park: nearPark,
-        near_school: nearSchool,
-        noise_level: noiseLevel,
-        image_url: imageUrl,
-        virtual_tour_link:
-          virtualTourLink.trim() &&
-          virtualTourLink !== 'https://your-virtual-tour-link.com'
-            ? virtualTourLink.trim()
-            : null,
-      };
-  
-      // 🔥 CALL STRIPE CHECKOUT EDGE FUNCTION
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            listing,
-          }),
-        }
-      );
-  
-      const data = await res.json();
-      if (!data?.url) throw new Error('Failed to create checkout session');
-  
-      // 🔁 REDIRECT TO STRIPE
-      window.location.href = data.url;
+
+      // Insert directly into properties table
+      const { error: insertError } = await supabase
+        .from('properties')
+        .insert({
+          user_id: user.id,
+          title: title.trim(),
+          description: description.trim(),
+          price: Number(price),
+          location: streetAddress.trim(),
+          city: city.trim(),
+          postcode: postcode.trim(),
+          bedrooms: Number(bedrooms),
+          property_type: propertyType,
+          listing_type: listingType,
+          near_park: nearPark,
+          near_school: nearSchool,
+          noise_level: noiseLevel,
+          image_url: imageUrl,
+          virtual_tour_link:
+            virtualTourLink.trim() &&
+              virtualTourLink !== 'https://your-virtual-tour-link.com'
+              ? virtualTourLink.trim()
+              : null,
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      // Redirect to properties page on success
+      navigate(`/seller/${user.id}/properties`);
     } catch (err: any) {
       console.error(err);
-      setErrors({ submit: err.message || 'Checkout failed' });
+      setErrors({ submit: err.message || 'Failed to create listing' });
       setLoading(false);
     }
   };
-  
+
   const handleCancel = () => {
     if (urlUserId) {
       navigate(`/seller/${urlUserId}/properties`);
@@ -288,9 +276,8 @@ export default function AddProperty() {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="e.g., Modern 3-Bedroom House in City Centre"
-                      className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.title ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                      className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.title ? 'border-red-300' : 'border-gray-300'
+                        }`}
                     />
                     {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
                   </div>
@@ -325,9 +312,8 @@ export default function AddProperty() {
                       id="listingType"
                       value={listingType}
                       onChange={(e) => setListingType(e.target.value)}
-                      className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.listingType ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                      className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.listingType ? 'border-red-300' : 'border-gray-300'
+                        }`}
                     >
                       <option value="sell">Sell</option>
                       <option value="rent">Rent</option>
@@ -353,9 +339,8 @@ export default function AddProperty() {
                         value={bedrooms}
                         onChange={(e) => setBedrooms(e.target.value === '' ? '' : Number(e.target.value))}
                         placeholder="e.g., 3"
-                        className={`w-full rounded-lg border pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.bedrooms ? 'border-red-300' : 'border-gray-300'
-                        }`}
+                        className={`w-full rounded-lg border pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.bedrooms ? 'border-red-300' : 'border-gray-300'
+                          }`}
                       />
                     </div>
                     {errors.bedrooms && <p className="mt-1 text-sm text-red-600">{errors.bedrooms}</p>}
@@ -372,9 +357,8 @@ export default function AddProperty() {
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Describe your property in detail. Include key features, amenities, and what makes it special..."
                       rows={6}
-                      className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
-                        errors.description ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                      className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${errors.description ? 'border-red-300' : 'border-gray-300'
+                        }`}
                     />
                     <p className="mt-1 text-xs text-gray-500">Minimum 50 characters recommended</p>
                     {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
@@ -407,9 +391,8 @@ export default function AddProperty() {
                       value={price}
                       onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
                       placeholder="2500000"
-                      className={`w-full rounded-lg border pl-8 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.price ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                      className={`w-full rounded-lg border pl-8 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.price ? 'border-red-300' : 'border-gray-300'
+                        }`}
                     />
                   </div>
                   <p className="mt-1 text-xs text-gray-500">Enter the asking price in GBP (£).</p>
@@ -438,9 +421,8 @@ export default function AddProperty() {
                       value={streetAddress}
                       onChange={(e) => setStreetAddress(e.target.value)}
                       placeholder="e.g., 5 Cuthbert Street, Albion Square"
-                      className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.streetAddress ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                      className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.streetAddress ? 'border-red-300' : 'border-gray-300'
+                        }`}
                     />
                     {errors.streetAddress && <p className="mt-1 text-sm text-red-600">{errors.streetAddress}</p>}
                   </div>
@@ -457,9 +439,8 @@ export default function AddProperty() {
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
                         placeholder="e.g., London"
-                        className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.city ? 'border-red-300' : 'border-gray-300'
-                        }`}
+                        className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.city ? 'border-red-300' : 'border-gray-300'
+                          }`}
                       />
                       {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
                     </div>
@@ -474,9 +455,8 @@ export default function AddProperty() {
                         value={postcode}
                         onChange={(e) => setPostcode(e.target.value)}
                         placeholder="e.g., SW1A 1AA"
-                        className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.postcode ? 'border-red-300' : 'border-gray-300'
-                        }`}
+                        className={`w-full rounded-lg border px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.postcode ? 'border-red-300' : 'border-gray-300'
+                          }`}
                       />
                       {errors.postcode && <p className="mt-1 text-sm text-red-600">{errors.postcode}</p>}
                     </div>
@@ -525,14 +505,12 @@ export default function AddProperty() {
                     <button
                       type="button"
                       onClick={() => setNearPark(!nearPark)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        nearPark ? 'bg-blue-600' : 'bg-gray-300'
-                      }`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${nearPark ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          nearPark ? 'translate-x-6' : 'translate-x-1'
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${nearPark ? 'translate-x-6' : 'translate-x-1'
+                          }`}
                       />
                     </button>
                   </div>
@@ -554,14 +532,12 @@ export default function AddProperty() {
                     <button
                       type="button"
                       onClick={() => setNearSchool(!nearSchool)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        nearSchool ? 'bg-blue-600' : 'bg-gray-300'
-                      }`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${nearSchool ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          nearSchool ? 'translate-x-6' : 'translate-x-1'
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${nearSchool ? 'translate-x-6' : 'translate-x-1'
+                          }`}
                       />
                     </button>
                   </div>
@@ -582,11 +558,10 @@ export default function AddProperty() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Property Image</label>
                     <div
-                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                        errors.image
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${errors.image
                           ? 'border-red-300 bg-red-50'
                           : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
-                      }`}
+                        }`}
                     >
                       {imagePreview ? (
                         <div className="space-y-4">
