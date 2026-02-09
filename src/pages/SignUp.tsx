@@ -577,7 +577,8 @@ export default function SignUp() {
               >
                 <option value="">Select user type</option>
                 <option value="buyer">Buyer / Renter</option>
-                <option value="seller">Agent / Landlord</option>
+                <option value="seller">Seller / Landlord</option>
+                <option value="agent">Agent</option>
               </select>
             </div>
 
