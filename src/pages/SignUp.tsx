@@ -338,6 +338,7 @@ async function handleSignUp(
           first_name: firstName,
           last_name: lastName,
           role,
+          provider: 'email',
         },
       },
     });
@@ -365,6 +366,23 @@ async function handleSignUp(
         error:
           "Signup completed but user id was not returned. If email confirmation is enabled, please check your email to confirm your account.",
       };
+    }
+
+    // Insert user profile into public.users table
+    const { error: insertError } = await supabase
+      .from('users')
+      .insert({
+        id: user.id,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        role: role,
+      });
+
+    if (insertError) {
+      console.error("Failed to insert user profile:", insertError);
+      // Don't fail signup if insert fails - user is created in auth
+      // but log the error for debugging
     }
 
     return { success: true, user };
