@@ -326,13 +326,6 @@ async function handleSignUp(
   role: string
 ) {
   try {
-    // Check if email already exists
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', email)
-      .maybeSingle();
-
     // Note: We can't directly query auth.users, so we rely on signup error
     
     // Create Auth user + store profile fields in user metadata.
