@@ -28,19 +28,21 @@ async function handleSignUp(email: string, password: string, firstName: string, 
             };
         }
 
-        // Step 3: UPDATE the user row created by the database trigger
-        // DO NOT INSERT - the trigger already created the row
+        // Step 3: Insert (or upsert) the user profile
+        // We use upsert to be safe, but since we disabled the trigger, this should be a new row.
         const { error: updateError } = await supabase
             .from('users')
-            .update({
+            .upsert({
+                id: userId,
+                email: email,
                 first_name: firstName,
                 last_name: lastName,
                 role: role,
-            })
-            .eq('id', userId);
+            });
 
-        console.log("UPDATED USER:", {
+        console.log("CREATED USER PROFILE:", {
             id: userId,
+            email: email,
             first_name: firstName,
             last_name: lastName,
             role: role
